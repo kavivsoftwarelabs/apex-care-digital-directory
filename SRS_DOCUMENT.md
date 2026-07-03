@@ -88,7 +88,3 @@ Only "Scheduled" appointments count toward the 15-slot limit and the one-active-
 - Bookings open up to 7 days ahead.
 - Only patients can cancel — not staff.
 - Staff mark visits "Done"; no-shows auto-become "Abandoned" at day's end.
-
----
-
-*End of Document*
