@@ -1,0 +1,43 @@
+{
+  "pr_number": 1,
+  "review_comments": [
+    {
+      "path": "SYSTEM_ARCHITECTURE.md",
+      "line": 33,
+      "side": "RIGHT",
+      "comment": "🔴 **BLOCKING ISSUE:** Appointment status enum is incomplete.\n\nThe SRS defines 4 appointment statuses (Section 2.4), but this schema only includes 2:\n\n**SRS Requirements:**\n- ✅ **Scheduled** → set when booked\n- ❌ **Done** → staff marks it after consultation\n- ❌ **Abandoned** → auto-set at end of day if still Scheduled\n- ❌ **Cancelled** → patient cancelled it\n\n**Current Schema:**\n\`\`\`sql\nstatus ENUM('BOOKED','CANCELLED')  -- Missing DONE and ABANDONED\n\`\`\`\n\n**Required Fix:**\n\`\`\`sql\nstatus ENUM('SCHEDULED','DONE','ABANDONED','CANCELLED') DEFAULT 'SCHEDULED'\n\`\`\`\n\n**Impact:**\nWithout these statuses, the implementation cannot:\n1. Mark appointments \"Done\" (SRS 2.5 - staff marks after consultation)\n2. Auto-mark appointments \"Abandoned\" (SRS 3 - end-of-day job)\n3. Correctly filter active appointments for the one-active-rule (only SCHEDULED count)\n\n**Action Required:** Update the appointments table definition before implementation."
+    },
+    {
+      "path": "SYSTEM_ARCHITECTURE.md",
+      "line": 50,
+      "side": "RIGHT",
+      "comment": "🔴 **BLOCKING ISSUE:** Missing concurrency control strategy for race-condition safety.\n\nThe SRS requires: \"No overbooking: Slot booking must be handled safely so two people can't grab the same last slot at once\" (Section 3).\n\nThis business rule is documented, but the architecture doesn't specify **HOW** to achieve thread-safe booking.\n\n**Problem:**\nTwo patients simultaneously attempting to book the last available slot could both succeed if there's no transaction/locking mechanism.\n\n**Recommended Solution:**\nAdd a new section documenting concurrency control approach:\n\n\`\`\`markdown\n## Concurrency \\u0026 Race Condition Safety\n\nTo prevent overbooking:\n\n- **Approach:** Row-level pessimistic locking during booking\n- **Implementation:**\n  1. BEGIN TRANSACTION\n  2. SELECT COUNT(*) FROM appointments WHERE doctor_id=? AND appointment_date=? AND batch=? AND status='SCHEDULED' FOR UPDATE\n  3. If count < 15, INSERT new appointment\n  4. COMMIT\n  5. On failure: return 409 CONFLICT if count reaches 15 mid-transaction\n\n- **Alternative:** Add `version INT DEFAULT 0` for optimistic locking; reject if version mismatch on update.\n\`\`\`\n\n**Action Required:** Choose and document your concurrency strategy before development."
+    },
+    {
+      "path": "SYSTEM_ARCHITECTURE.md",
+      "line": 72,
+      "side": "RIGHT",
+      "comment": "🔴 **BLOCKING ISSUE:** Missing end-of-day automation for Abandoned appointments.\n\nThe SRS requires (Section 3): \"An automated task runs daily to mark unfinished appointments as 'Abandoned.'\"\n\nThis critical job is not documented in the architecture.\n\n**Current Gap:**\n- No specification of WHEN the job runs (time of day)\n- No specification of HOW it's triggered (cron, scheduled function, queue)\n- No SQL query definition\n- No mention of which framework/tool to use\n\n**Required Addition to SYSTEM_ARCHITECTURE.md:**\n\n\`\`\`markdown\n## 3. Scheduled Jobs \\u0026 Automation\n\n### Daily Abandoned Appointment Job\n- **Trigger Time:** Daily at 11:59 PM (end of business day)\n- **Frequency:** Once per day\n- **SQL Action:**\n  \`\`\`sql\n  UPDATE appointments\n  SET status='ABANDONED'\n  WHERE status='SCHEDULED' AND appointment_date=CURDATE()\n  \`\`\`\n- **Implementation Recommendation:**\n  - Option A: Node.js `node-cron` package for in-app scheduling\n  - Option B: Database-level scheduler (MySQL EVENT, PostgreSQL pg_cron)\n  - Option C: External scheduler (AWS Lambda, Google Cloud Tasks)\n- **Responsibility:** Ensure all unfinished appointments from the day are marked Abandoned before the next day begins\n\`\`\`\n\n**Action Required:** Define the scheduling approach and add this job specification before development."
+    },
+    {
+      "path": "SYSTEM_ARCHITECTURE.md",
+      "line": 29,
+      "side": "RIGHT",
+      "comment": "🟡 **HIGH PRIORITY:** Missing constraint for one-active-appointment rule.\n\nThe SRS states (Section 2.2): \"One patient (by phone number) can have only one active appointment at a time.\"\n\nThe schema doesn't enforce this constraint.\n\n**Current Gap:**\n- No database-level constraint to prevent duplicate active appointments\n- No mention of how this is validated\n\n**Recommended Solution (Choose One):\n\n**Option 1 - Database Constraint (PostgreSQL):**\n\`\`\`sql\nALTER TABLE appointments\nADD CONSTRAINT uq_patient_active_appointment\nUNIQUE (patient_phone)
+WHERE status='SCHEDULED';\n\`\`\`\n\n**Option 2 - Application-Layer Validation (MySQL):**\nDocument that booking validation must include:\n\`\`\`sql\nSELECT COUNT(*) FROM appointments\nWHERE patient_phone=? AND status='SCHEDULED'\n\`\`\`\nIf count > 0, reject with 409 CONFLICT error.\n\n**Action Required:** Document which approach will be used."
+    },
+    {
+      "path": "SYSTEM_ARCHITECTURE.md",
+      "line": 21,
+      "side": "RIGHT",
+      "comment": "🟡 **HIGH PRIORITY:** Missing columns: created_at, updated_at, and booking_reference.\n\nThe appointments table is missing critical fields:\n\n**Missing Columns:**\n\n1. **created_at** (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)\n   - Needed for audit trail\n   - Required by staff dashboard for filtering\n\n2. **updated_at** (TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)\n   - Tracks when appointment status changed\n   - Needed for data consistency checks\n\n3. **booking_reference** (VARCHAR(20))\n   - SRS 2.2: \"On success, show an on-screen confirmation with a booking reference\"\n   - Format suggested: `HOS-YYYYMMDD-XXXX` (e.g., `HOS-20250715-A1K9`)\n\n**Recommended Update:**\n\`\`\`sql\nCREATE TABLE appointments (\n  -- ...existing columns...\n  booking_reference VARCHAR(20) UNIQUE NOT NULL,\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);\n\`\`\`\n\n**Action Required:** Add these columns to the schema."
+    },
+    {
+      "path": "SYSTEM_ARCHITECTURE.md",
+      "line": 1,
+      "side": "RIGHT",
+      "comment": "🟡 **HIGH PRIORITY:** Missing database indexes for 500-concurrent-user load.\n\nThe SRS requires (Section 3): \"Must handle 500 people using it at once (e.g., Monday rush) without crashing\" and \"Pages should load in ~2 seconds.\"\n\nNo index strategy is documented. Without proper indexing, queries will be slow under load.\n\n**Add this section after the Relationships table:**\n\n\`\`\`markdown\n## Indexes (Performance Optimization)\n\nFor optimal performance under 500 concurrent users:\n\n| Table | Index Name | Columns | Reason |\n|-------|------------|---------|--------|\n| appointments | idx_patient_lookup | (patient_phone, status) | Fast lookup/cancel by phone #
+| appointments | idx_slot_availability | (doctor_id, appointment_date, batch, status) | Fast slot count check during booking |\n| appointments | idx_abandoned_job | (appointment_date, status) | Fast end-of-day query for marking abandoned |\n| doctors | idx_by_department | (department_id) | Fast filtering doctors by department |\n| doctors | idx_availability | (is_available_today) | Fast filtering available doctors |\n\`\`\`\n\n**Without these indexes:**\n- Slot availability check (performed on every booking) scans entire appointments table\n- Patient lookup for cancellation is slow\n- End-of-day job scans entire table\n- Department filtering requires full table scan\n\n**Action Required:** Add index strategy before implementation."
+    }
+  ]
+}
