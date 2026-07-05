@@ -1,0 +1,12 @@
+{
+  "name": "apex-care-digital-directory",
+  "version": "1.0.0",
+  "description": "Apex Care Digital Directory boilerplate",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
