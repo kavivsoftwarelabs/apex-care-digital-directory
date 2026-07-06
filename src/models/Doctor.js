@@ -15,4 +15,4 @@ static async getAllDoctors() {
     ORDER BY 
         d.name, doc.name
     `;
-}
+};
