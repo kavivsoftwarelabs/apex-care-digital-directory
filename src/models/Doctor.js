@@ -1,18 +1,27 @@
-static async getAllDoctors() {
-    const sql = `
-    SELECT
-        d.department_id,
-        d.name AS department,
-        doc.doctor_id,
-        doc.name AS doctor_name,
-        doc.is_available_today
+const db = require("../config/db");
 
-    FROM departments d
+class Doctor {
 
-    JOIN doctors doc
-    ON d.department_id = doc.department_id
-    
-    ORDER BY 
-        d.name, doc.name
-    `;
-};
+    static async getAllDoctors() {
+
+        const query = `
+            SELECT
+                d.doctor_id,
+                d.doctor_name,
+                d.is_available_today,
+                dep.department_id,
+                dep.department_name AS department
+            FROM doctors d
+            INNER JOIN departments dep
+                ON d.department_id = dep.department_id
+            ORDER BY dep.department_name, d.doctor_name;
+        `;
+
+        const [rows] = await db.execute(query);
+
+        return rows;
+    }
+
+}
+
+module.exports = Doctor;
