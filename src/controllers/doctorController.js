@@ -3,7 +3,7 @@ const Doctor = require("../models/Doctor");
 function groupByDepartment(doctors) {
     const grouped = {};
 
-    doctors.forEach(doctor => {
+    doctors.forEach((doctor) => {
         const department = doctor.department;
 
         if (!grouped[department]) {
@@ -11,9 +11,10 @@ function groupByDepartment(doctors) {
         }
 
         grouped[department].push({
-            doctor_id: doctor.doctor_id,
+            doctor_id: doctor._id,
             doctor_name: doctor.doctor_name,
-            is_available_today: doctor.is_available_today
+            is_available_today: doctor.is_available_today,
+            slotsAvailable: doctor.slotsAvailable,
         });
     });
 
@@ -22,17 +23,16 @@ function groupByDepartment(doctors) {
 
 exports.getDoctors = async (req, res) => {
     try {
-        const doctors = await Doctor.getAllDoctors();
+        const doctors = await Doctor.find();
 
         const grouped = groupByDepartment(doctors);
 
         res.status(200).json(grouped);
-
     } catch (err) {
         console.error(err);
 
         res.status(500).json({
-            error: err.message
+            error: err.message,
         });
     }
 };
