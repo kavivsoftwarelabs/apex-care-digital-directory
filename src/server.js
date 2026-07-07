@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
 
 // MongoDB Connection
 mongoose.connect(
-    "mongodb+srv://parvezs:saifip621@cluster0.jfovs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    "mongodb+srv://<username>:<password>@cluster0.jfovs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 )
 .then(() => {
     console.log("Connected to MongoDB Atlas");
