@@ -1,26 +1,26 @@
 const mongoose = require("mongoose");
 
-const doctorSchema = new mongoose.Schema({
-    doctor_name: {
-        type: String,
-        required: true,
+const doctorSchema = new mongoose.Schema(
+    {
+        name: { 
+            type: String, 
+            required: true, 
+            trim: true 
+        },
+        department: {
+            type: String,
+            enum: ["Pediatrics", 
+                   "Orthopedics", 
+                   "Cardiology", 
+                   "General Medicine"],
+            required: true,
+        },
+        is_available_today: { 
+            type: Boolean, 
+            default: true 
+        },
     },
-    department: {
-        type: String,
-        required: true,
-        enum: [
-            "Pediatrics",
-            "Orthopedics",
-            "Cardiology",
-            "General Medicine",
-        ],
-    },
-    is_available_today: {
-        type: Boolean,
-        default: true,
-    },
-    slotsAvailable: {
-        type: Number,
-        default: 15,
-    },
-});
+    { timestamps: true, collection: "doctors" }
+);
+
+module.exports = mongoose.model("Doctor", doctorSchema);
