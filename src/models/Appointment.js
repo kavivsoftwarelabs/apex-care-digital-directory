@@ -35,6 +35,14 @@ const appointmentSchema = new mongoose.Schema(
     appointment_date: {
       type: Date,
       required: true,
+      validate: {
+        validator: function (value) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return value >= today;
+        },
+        message: "Appointment date cannot be in the past.",
+      },
     },
 
     batch: {
@@ -66,5 +74,13 @@ const appointmentSchema = new mongoose.Schema(
     collection: "appointments",
   }
 );
+
+appointmentSchema.index({ patient_phone: 1, status: 1 });
+appointmentSchema.index({
+  doctor_id: 1,
+  appointment_date: 1,
+  batch: 1,
+  status: 1,
+});
 
 module.exports = mongoose.model("Appointment", appointmentSchema);
