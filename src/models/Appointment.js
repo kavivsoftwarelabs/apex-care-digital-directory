@@ -24,7 +24,6 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      match: [/^[6-9]\d{9}$/, "Please enter a valid 10-digit mobile number"],
     },
 
     health_issue: {
@@ -54,7 +53,7 @@ const appointmentSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["SCHEDULED", "DONE", "ABANDONED", "CANCELLED"],
+      enum: ["SCHEDULED", "DONE", "CANCELLED"],
       default: "SCHEDULED",
     },
 
@@ -62,14 +61,12 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       unique: true,
       sparse: true,
-      trim: true,
     },
 
     idempotency_key: {
       type: String,
       unique: true,
       sparse: true,
-      trim: true,
     },
   },
   {
@@ -78,7 +75,6 @@ const appointmentSchema = new mongoose.Schema(
   }
 );
 
-// Useful indexes
 appointmentSchema.index({ patient_phone: 1, status: 1 });
 appointmentSchema.index({
   doctor_id: 1,
