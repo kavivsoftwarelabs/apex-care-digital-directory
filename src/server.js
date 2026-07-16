@@ -1,6 +1,6 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
-
 const doctorRoutes = require("./routes/doctorRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
 
@@ -14,13 +14,13 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "Hospital Appointment API is running ",
+    message: "Hospital Appointment API is running",
   });
 });
 
 // API Routes
-app.use("/api/doctors", doctorRoutes);
-app.use("/api/appointments", appointmentRoutes);
+app.use("/api/v1/doctors", doctorRoutes);
+app.use("/api/v1/appointments", appointmentRoutes);
 
 // 404 Handler
 app.use((req, res) => {
@@ -33,7 +33,6 @@ app.use((req, res) => {
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error(err);
-
   res.status(err.status || 500).json({
     success: false,
     message: err.message || "Internal Server Error",
@@ -45,7 +44,6 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("Connected to MongoDB Atlas");
-
     app.listen(PORT, () => {
       console.log(`Server running at http://localhost:${PORT}`);
     });
