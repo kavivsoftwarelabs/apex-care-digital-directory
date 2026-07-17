@@ -3,6 +3,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const doctorRoutes = require("./routes/doctorRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,6 +22,7 @@ app.get("/", (req, res) => {
 // API Routes
 app.use("/api/v1/doctors", doctorRoutes);
 app.use("/api/v1/appointments", appointmentRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 // 404 Handler
 app.use((req, res) => {
